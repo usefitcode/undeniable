@@ -1,51 +1,41 @@
 // Function to pause a Loom iframe
 function pauseLoomIframe(iframe) {
   if (!iframe) return;
-  console.log('Pausing iframe:', iframe);
   iframe.contentWindow.postMessage(
     { method: 'pause', context: 'player.js' },
     '*'
   );
 }
 
-function setupTabPauseListeners() {
-  const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
-  if (!tabsComponent) return;
+function pauseInactiveLoomVideos() {
+  // Find the active tab's slug
+  const activePane = document.querySelector('.w-tab-pane.w--tab-active');
+  if (!activePane) return;
+  // Find the active slug (from the iframe in the active pane)
+  const activeIframe = activePane.querySelector('iframe[data-video-tab-iframe]');
+  const activeSlug = activeIframe ? activeIframe.getAttribute('data-video-tab-iframe') : null;
 
-  const tabLinks = tabsComponent.querySelectorAll('.w-tab-link');
-  tabLinks.forEach(tabLink => {
-    if (!tabLink.hasPauseListener) {
-      tabLink.addEventListener('click', function() {
-        const activeSlug = tabLink.getAttribute('data-video-tab-link');
-        console.log('Tab clicked, activeSlug:', activeSlug);
-        document.querySelectorAll('iframe[data-video-tab-iframe]').forEach(function(iframe) {
-          const videoSlug = iframe.getAttribute('data-video-tab-iframe');
-          console.log('Comparing videoSlug:', videoSlug, 'to activeSlug:', activeSlug);
-          if (videoSlug !== activeSlug) {
-            pauseLoomIframe(iframe);
-          }
-        });
-      });
-      tabLink.hasPauseListener = true;
+  // Pause all Loom iframes except the one in the active pane
+  document.querySelectorAll('iframe[data-video-tab-iframe]').forEach(function(iframe) {
+    const videoSlug = iframe.getAttribute('data-video-tab-iframe');
+    if (videoSlug !== activeSlug) {
+      pauseLoomIframe(iframe);
     }
   });
 }
 
-// Use MutationObserver to watch for tab link changes
-window.addEventListener('load', function() {
-  function observeTabs() {
-    const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
-    if (!tabsComponent) {
-      setTimeout(observeTabs, 200);
-      return;
-    }
-    setupTabPauseListeners();
+// Observe for changes to the active tab pane
+window.addEventListener('DOMContentLoaded', function() {
+  const tabContent = document.querySelector('[fs-list-element="tabs"]');
+  if (!tabContent) return;
 
-    const observer = new MutationObserver(() => {
-      setupTabPauseListeners();
-    });
+  // Use a MutationObserver to watch for class changes (tab switches)
+  const observer = new MutationObserver(() => {
+    pauseInactiveLoomVideos();
+  });
 
-    observer.observe(tabsComponent, { childList: true, subtree: true });
-  }
-  observeTabs();
+  observer.observe(tabContent, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+
+  // Also run once on load
+  pauseInactiveLoomVideos();
 }); 
