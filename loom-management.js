@@ -13,7 +13,20 @@ function createLoomIframe(loomUrl) {
   iframe.frameBorder = "0";
   iframe.allow = "autoplay; fullscreen";
   iframe.setAttribute("allowfullscreen", "");
-  return iframe;
+  iframe.style.position = "absolute";
+  iframe.style.top = "0";
+  iframe.style.left = "0";
+  iframe.style.width = "100%";
+  iframe.style.height = "100%";
+
+  // Create a responsive wrapper div
+  const wrapper = document.createElement('div');
+  wrapper.style.position = "relative";
+  wrapper.style.paddingBottom = "56.25%";
+  wrapper.style.height = "0";
+  wrapper.appendChild(iframe);
+
+  return wrapper;
 }
 
 // Activate Loom in the currently active tab pane
@@ -29,22 +42,20 @@ function activateLoomInActivePane() {
     iframe.remove();
   });
 
-  // Find the video embed container in the active pane
-  const videoEmbedDiv = activePane.querySelector('div[data-element="video-embed"]');
-  if (videoEmbedDiv) {
-    // Try to get the Loom URL from the iframe's src attribute
-    const existingIframe = videoEmbedDiv.querySelector('iframe[src]');
-    let loomUrl = existingIframe ? existingIframe.getAttribute('src') : null;
-    if (loomUrl && loomUrl.startsWith('@')) {
-      loomUrl = loomUrl.slice(1); // Remove leading '@'
-    }
+  // Find the placeholder in the active pane
+  const loomPlaceholder = activePane.querySelector('[data-loom-url]');
+  let loomUrl = loomPlaceholder ? loomPlaceholder.getAttribute('data-loom-url') : null;
+  if (loomUrl && loomUrl.startsWith('@')) {
+    loomUrl = loomUrl.slice(1);
+  }
+
+  if (loomPlaceholder) {
     if (loomUrl && loomUrl.startsWith('https://www.loom.com/embed/')) {
-      videoEmbedDiv.innerHTML = '';
-      const iframe = createLoomIframe(loomUrl);
-      videoEmbedDiv.appendChild(iframe);
+      loomPlaceholder.innerHTML = '';
+      const embed = createLoomIframe(loomUrl);
+      loomPlaceholder.appendChild(embed);
     } else {
-      // Optionally, show a placeholder or message
-      videoEmbedDiv.innerHTML = '<div style="text-align:center;color:#888;">Video coming soon</div>';
+      loomPlaceholder.innerHTML = '<div style="text-align:center;color:#888;">Video coming soon</div>';
     }
   }
 }
