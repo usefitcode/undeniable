@@ -8,20 +8,16 @@ function pauseLoomIframe(iframe) {
   );
 }
 
-window.addEventListener('load', function() {
-  // Find the Finsweet tabs component
+function setupTabPauseListeners() {
   const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
   if (!tabsComponent) return;
 
-  // Set up click listeners for tab navigation
   const tabLinks = tabsComponent.querySelectorAll('.w-tab-link');
   tabLinks.forEach(tabLink => {
     if (!tabLink.hasPauseListener) {
       tabLink.addEventListener('click', function() {
-        // Get the slug for the tab being activated
         const activeSlug = tabLink.getAttribute('data-video-tab-link');
         console.log('Tab clicked, activeSlug:', activeSlug);
-        // Pause all Loom iframes except the one for the active tab
         document.querySelectorAll('iframe[data-video-tab-iframe]').forEach(function(iframe) {
           const videoSlug = iframe.getAttribute('data-video-tab-iframe');
           console.log('Comparing videoSlug:', videoSlug, 'to activeSlug:', activeSlug);
@@ -33,4 +29,17 @@ window.addEventListener('load', function() {
       tabLink.hasPauseListener = true;
     }
   });
+}
+
+// Wait for Finsweet to build the tabs, then attach listeners
+window.addEventListener('load', function() {
+  function trySetup() {
+    const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
+    if (tabsComponent && tabsComponent.querySelectorAll('.w-tab-link').length > 0) {
+      setupTabPauseListeners();
+    } else {
+      setTimeout(trySetup, 200);
+    }
+  }
+  trySetup();
 }); 
