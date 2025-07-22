@@ -1,9 +1,3 @@
-// Only run this script on the staging domain
-if (window.location.hostname !== 'becomeundeniable.webflow.io') {
-  // Exit if not on staging
-  return;
-}
-
 // Function to pause a Loom iframe
 function pauseLoomIframe(iframe) {
   if (!iframe) return;
