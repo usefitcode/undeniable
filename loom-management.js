@@ -4,127 +4,36 @@ if (window.location.hostname !== 'becomeundeniable.webflow.io') {
   return;
 }
 
-// Helper to create a Loom iframe
-function createLoomIframe(loomUrl) {
-  const iframe = document.createElement('iframe');
-  iframe.src = loomUrl;
-  iframe.width = "100%";
-  iframe.height = "400"; // Adjust as needed
-  iframe.frameBorder = "0";
-  iframe.allow = "autoplay; fullscreen";
-  iframe.setAttribute("allowfullscreen", "");
-  iframe.style.position = "absolute";
-  iframe.style.top = "0";
-  iframe.style.left = "0";
-  iframe.style.width = "100%";
-  iframe.style.height = "100%";
-
-  // Create a responsive wrapper div
-  const wrapper = document.createElement('div');
-  wrapper.style.position = "relative";
-  wrapper.style.paddingBottom = "56.25%";
-  wrapper.style.height = "0";
-  wrapper.appendChild(iframe);
-
-  return wrapper;
+// Function to pause a Loom iframe
+function pauseLoomIframe(iframe) {
+  if (!iframe) return;
+  iframe.contentWindow.postMessage(
+    { method: 'pause', context: 'player.js' },
+    '*'
+  );
 }
 
-// Activate Loom in the currently active tab pane
-function activateLoomInActivePane() {
+window.addEventListener('load', function() {
+  // Find the Finsweet tabs component
   const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
   if (!tabsComponent) return;
-  const activePane = tabsComponent.querySelector('.w-tab-pane.w--tab-active');
-  if (!activePane) return;
 
-  // Remove all Loom iframes from all panes
-  tabsComponent.querySelectorAll('iframe').forEach(iframe => {
-    pauseLoomIframe(iframe);
-    iframe.remove();
-  });
-
-  // Find the placeholder in the active pane
-  const loomPlaceholder = activePane.querySelector('[data-loom-url]');
-  let loomUrl = loomPlaceholder ? loomPlaceholder.getAttribute('data-loom-url') : null;
-  if (loomUrl && loomUrl.startsWith('@')) {
-    loomUrl = loomUrl.slice(1);
-  }
-
-  if (loomPlaceholder) {
-    if (loomUrl && loomUrl.startsWith('https://www.loom.com/embed/')) {
-      loomPlaceholder.innerHTML = '';
-      const embed = createLoomIframe(loomUrl);
-      loomPlaceholder.appendChild(embed);
-    } else {
-      loomPlaceholder.innerHTML = '<div style="text-align:center;color:#888;">Video coming soon</div>';
-    }
-  }
-}
-
-// Set up click listeners for tab navigation
-function setupTabListeners() {
-  const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
-  if (!tabsComponent) return;
+  // Set up click listeners for tab navigation
   const tabLinks = tabsComponent.querySelectorAll('.w-tab-link');
   tabLinks.forEach(tabLink => {
-    if (!tabLink.hasLoomListener) {
-      tabLink.addEventListener('click', () => {
-        setTimeout(activateLoomInActivePane, 150);
-      });
-      tabLink.hasLoomListener = true;
-    }
-  });
-}
-
-// Wait for Finsweet to finish building the tabs using MutationObserver
-window.addEventListener('load', function() {
-  function initializeLoomTabManagement() {
-    const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
-    if (!tabsComponent) return;
-    setupTabListeners();
-    activateLoomInActivePane();
-  }
-
-  // Observe for changes in the tab system
-  const observer = new MutationObserver(() => {
-    initializeLoomTabManagement();
-  });
-
-  // Wait for the tabs component to appear in the DOM
-  function waitForTabsComponent() {
-    const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
-    if (tabsComponent) {
-      observer.observe(tabsComponent, { childList: true, subtree: true });
-      initializeLoomTabManagement();
-    } else {
-      setTimeout(waitForTabsComponent, 200);
-    }
-  }
-
-  waitForTabsComponent();
-});
-
-// Custom solution to pause the video when someone switches tabs
-window.FinsweetAttributes = window.FinsweetAttributes || [];
-window.FinsweetAttributes.push([
-  'list', // or the specific solution name if different
-  (listInstances) => {
-    function pauseLoomIframe(iframe) {
-      if (!iframe) return;
-      iframe.contentWindow.postMessage(
-        { method: 'pause', context: 'player.js' },
-        '*'
-      );
-    }
-    document.querySelectorAll('[data-video-tab-link]').forEach(function(tabLink) {
+    if (!tabLink.hasPauseListener) {
       tabLink.addEventListener('click', function() {
-        var activeSlug = tabLink.getAttribute('data-video-tab-link');
+        // Get the slug for the tab being activated
+        const activeSlug = tabLink.getAttribute('data-video-tab-link');
+        // Pause all Loom iframes except the one for the active tab
         document.querySelectorAll('iframe[data-video-tab-iframe]').forEach(function(iframe) {
-          var videoSlug = iframe.getAttribute('data-video-tab-iframe');
+          const videoSlug = iframe.getAttribute('data-video-tab-iframe');
           if (videoSlug !== activeSlug) {
             pauseLoomIframe(iframe);
           }
         });
       });
-    });
-  }
-]); 
+      tabLink.hasPauseListener = true;
+    }
+  });
+}); 
