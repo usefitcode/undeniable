@@ -24,7 +24,10 @@ function activateLoomInActivePane() {
   if (!activePane) return;
 
   // Remove all Loom iframes from all panes
-  tabsComponent.querySelectorAll('.w-tab-pane iframe').forEach(iframe => iframe.remove());
+  tabsComponent.querySelectorAll('iframe').forEach(iframe => {
+    pauseLoomIframe(iframe);
+    iframe.remove();
+  });
 
   // Find the video embed container in the active pane
   const videoEmbedDiv = activePane.querySelector('div[data-element="video-embed"]');
@@ -35,11 +38,13 @@ function activateLoomInActivePane() {
     if (loomUrl && loomUrl.startsWith('@')) {
       loomUrl = loomUrl.slice(1); // Remove leading '@'
     }
-    if (loomUrl) {
-      // Clear the embed div and insert the new iframe
+    if (loomUrl && loomUrl.startsWith('https://www.loom.com/embed/')) {
       videoEmbedDiv.innerHTML = '';
       const iframe = createLoomIframe(loomUrl);
       videoEmbedDiv.appendChild(iframe);
+    } else {
+      // Optionally, show a placeholder or message
+      videoEmbedDiv.innerHTML = '<div style="text-align:center;color:#888;">Video coming soon</div>';
     }
   }
 }
