@@ -31,15 +31,21 @@ function setupTabPauseListeners() {
   });
 }
 
-// Wait for Finsweet to build the tabs, then attach listeners
+// Use MutationObserver to watch for tab link changes
 window.addEventListener('load', function() {
-  function trySetup() {
+  function observeTabs() {
     const tabsComponent = document.querySelector('[fs-list-element="tabs"]');
-    if (tabsComponent && tabsComponent.querySelectorAll('.w-tab-link').length > 0) {
-      setupTabPauseListeners();
-    } else {
-      setTimeout(trySetup, 200);
+    if (!tabsComponent) {
+      setTimeout(observeTabs, 200);
+      return;
     }
+    setupTabPauseListeners();
+
+    const observer = new MutationObserver(() => {
+      setupTabPauseListeners();
+    });
+
+    observer.observe(tabsComponent, { childList: true, subtree: true });
   }
-  trySetup();
+  observeTabs();
 }); 
