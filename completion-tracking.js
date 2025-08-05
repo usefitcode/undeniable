@@ -1,5 +1,18 @@
 // Completion Tracking Script + Play/Complete Buttons
 document.addEventListener("DOMContentLoaded", function() {
+  // Add global error handler to catch issues
+  window.addEventListener('error', function(event) {
+    console.error('Script error detected:', event.error);
+  });
+  
+  // Browser compatibility check with detailed logging
+  var browserInfo = {
+    userAgent: navigator.userAgent,
+    hasPromise: !!window.Promise,
+    hasMemberstack: !!window.$memberstackDom,
+    timestamp: new Date().toISOString()
+  };
+  console.log('Browser environment:', browserInfo);
   // Enhanced Memberstack readiness check
   function waitForMemberstack(callback, maxAttempts) {
     maxAttempts = maxAttempts || 15; // 3 seconds total
@@ -104,6 +117,21 @@ document.addEventListener("DOMContentLoaded", function() {
         const memberJson = result.data || {};
         memberJson.completedContent = memberJson.completedContent || {};
       
+        // Safe button text update function
+        function updateButtonText(btn, isCompleted) {
+          var newText = isCompleted ? 'Completed' : 'Mark Complete';
+          try {
+            btn.textContent = newText;
+            // Double-check it worked
+            if (btn.textContent !== newText) {
+              btn.innerText = newText; // Fallback
+            }
+            console.log('Button text updated to:', newText, 'for button:', btn);
+          } catch (e) {
+            console.error('Failed to update button text:', e);
+          }
+        }
+
         // Initialize UI - buttons and icons
         buttons.forEach(function(btn) {
           const videoId = btn.dataset.videoId;
@@ -114,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function() {
           }
           
           const isCompleted = memberJson.completedContent[phaseId] && memberJson.completedContent[phaseId].includes(videoId);
-          btn.textContent = isCompleted ? '☑️ Completed' : 'Mark Complete';
+          updateButtonText(btn, isCompleted);
           btn.classList.toggle('is-completed', isCompleted);
         });
         
@@ -161,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function() {
               return window.$memberstackDom.updateMemberJSON({ json: memberJson })
                 .then(function() {
                   // Success state
-                  btn.textContent = wasAlreadyCompleted ? 'Mark Complete' : '☑️ Completed';
+                  updateButtonText(btn, isMarkingComplete);
                   btn.classList.remove('is-loading');
                   btn.classList.toggle('is-completed', isMarkingComplete);
                   
@@ -198,7 +226,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     // Revert to original state after 2 seconds
                     setTimeout(function() {
-                      btn.textContent = originalText;
+                      updateButtonText(btn, wasAlreadyCompleted);
                       btn.classList.remove('is-error');
                       btn.classList.toggle('is-completed', wasAlreadyCompleted);
                       btn.disabled = false;
