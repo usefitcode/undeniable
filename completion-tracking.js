@@ -142,12 +142,16 @@ document.addEventListener("DOMContentLoaded", function() {
             btn.classList.add('is-loading');
             
             const completedData = memberJson.completedContent;
-            const isCompleted = completedData[phaseId] && completedData[phaseId].includes(videoId);
-            const wasMarkingComplete = !isCompleted; // Store the action type
+            const wasAlreadyCompleted = completedData[phaseId] && completedData[phaseId].includes(videoId);
+            const isMarkingComplete = !wasAlreadyCompleted; // True if we're marking complete, false if un-marking
             
-            if (isCompleted) {
+            console.log('Button action:', isMarkingComplete ? 'marking complete' : 'un-marking complete');
+            
+            if (wasAlreadyCompleted) {
+              // Un-marking: remove from completed array
               completedData[phaseId] = completedData[phaseId].filter(function(id) { return id !== videoId; });
             } else {
+              // Marking complete: add to completed array
               completedData[phaseId] = completedData[phaseId] || [];
               completedData[phaseId].push(videoId);
             }
@@ -157,14 +161,17 @@ document.addEventListener("DOMContentLoaded", function() {
               return window.$memberstackDom.updateMemberJSON({ json: memberJson })
                 .then(function() {
                   // Success state
-                  btn.textContent = isCompleted ? 'Mark Complete' : '☑️ Completed';
+                  btn.textContent = wasAlreadyCompleted ? 'Mark Complete' : '☑️ Completed';
                   btn.classList.remove('is-loading');
-                  btn.classList.toggle('is-completed', !isCompleted);
+                  btn.classList.toggle('is-completed', isMarkingComplete);
                   
                   // Trigger confetti only when marking complete (not un-marking)
-                  if (wasMarkingComplete && window.triggerConfetti) {
+                  if (isMarkingComplete && window.triggerConfetti) {
+                    console.log('Triggering confetti for completion!');
                     const confettiEffect = btn.getAttribute('ms-code-confetti') || 'explosions';
                     window.triggerConfetti(confettiEffect);
+                  } else {
+                    console.log('No confetti - either un-marking or no triggerConfetti function');
                   }
                   
                   updateProgress(completedData);
@@ -193,7 +200,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     setTimeout(function() {
                       btn.textContent = originalText;
                       btn.classList.remove('is-error');
-                      btn.classList.toggle('is-completed', isCompleted);
+                      btn.classList.toggle('is-completed', wasAlreadyCompleted);
                       btn.disabled = false;
                     }, 2000);
                     
