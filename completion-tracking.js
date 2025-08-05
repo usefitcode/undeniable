@@ -19,7 +19,33 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
   
+  // Extension conflict detection
+  function detectExtensionConflicts() {
+    // Test for ad blockers
+    var testAd = document.createElement('div');
+    testAd.innerHTML = '&nbsp;';
+    testAd.className = 'adsbox';
+    testAd.style.position = 'absolute';
+    testAd.style.left = '-999px';
+    document.body.appendChild(testAd);
+    
+    setTimeout(function() {
+      var isAdBlocked = testAd.offsetHeight === 0;
+      if (isAdBlocked) {
+        console.warn('Ad blocker detected - may interfere with Memberstack API calls');
+      }
+      document.body.removeChild(testAd);
+    }, 100);
+    
+    // Test for privacy extensions blocking third-party requests
+    if (navigator.doNotTrack === '1') {
+      console.info('Do Not Track enabled - privacy extensions may be active');
+    }
+  }
+  
   waitForMemberstack(function() {
+    detectExtensionConflicts();
+    
     const buttons = document.querySelectorAll('.mark-complete-btn');
     const progressText = document.querySelector('[data-progress-element="text"]');
     const progressBar = document.querySelector('[data-progress-element="bar"]');
@@ -105,33 +131,66 @@ document.addEventListener("DOMContentLoaded", function() {
             
             btn.disabled = true;
             
+            // Show loading state
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Saving...';
+            btn.classList.add('is-loading');
+            
             const completedData = memberJson.completedContent;
             const isCompleted = completedData[phaseId] && completedData[phaseId].includes(videoId);
             
             if (isCompleted) {
               completedData[phaseId] = completedData[phaseId].filter(function(id) { return id !== videoId; });
-              btn.textContent = 'Mark Complete';
-              btn.classList.remove('is-completed');
             } else {
               completedData[phaseId] = completedData[phaseId] || [];
               completedData[phaseId].push(videoId);
-              btn.textContent = '☑️ Completed';
-              btn.classList.add('is-completed');
             }
 
-            window.$memberstackDom.updateMemberJSON({ json: memberJson })
-              .then(function() {
-                updateProgress(completedData);
-                updateIcons(completedData);
-                btn.disabled = false;
-              })
-              .catch(function(err) {
-                console.error("Update failed:", err);
-                // Simple revert
-                btn.textContent = isCompleted ? '☑️ Completed' : 'Mark Complete';
-                btn.classList.toggle('is-completed', isCompleted);
-                btn.disabled = false;
-              });
+            // Retry logic for network failures
+            function attemptUpdate(retryCount) {
+              return window.$memberstackDom.updateMemberJSON({ json: memberJson })
+                .then(function() {
+                  // Success state
+                  btn.textContent = isCompleted ? 'Mark Complete' : '☑️ Completed';
+                  btn.classList.remove('is-loading');
+                  btn.classList.toggle('is-completed', !isCompleted);
+                  
+                  updateProgress(completedData);
+                  updateIcons(completedData);
+                  btn.disabled = false;
+                })
+                .catch(function(err) {
+                  console.error("Update failed (attempt " + (2 - retryCount) + "):", err);
+                  
+                  // Retry once on network errors
+                  if (retryCount > 0 && (err.message.includes('network') || err.message.includes('fetch') || err.name === 'NetworkError')) {
+                    console.log('Retrying update in 1 second...');
+                    btn.textContent = '🔄 Retrying...';
+                    return new Promise(function(resolve) {
+                      setTimeout(function() {
+                        resolve(attemptUpdate(retryCount - 1));
+                      }, 1000);
+                    });
+                  } else {
+                    // Final failure - show error and revert UI
+                    btn.textContent = '❌ Failed';
+                    btn.classList.remove('is-loading');
+                    btn.classList.add('is-error');
+                    
+                    // Revert to original state after 2 seconds
+                    setTimeout(function() {
+                      btn.textContent = originalText;
+                      btn.classList.remove('is-error');
+                      btn.classList.toggle('is-completed', isCompleted);
+                      btn.disabled = false;
+                    }, 2000);
+                    
+                    throw err;
+                  }
+                });
+            }
+            
+            attemptUpdate(1);
           });
         });
       })
