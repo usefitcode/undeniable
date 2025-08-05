@@ -26,16 +26,35 @@ function pauseInactiveLoomVideos() {
 
 // Observe for changes to the active tab pane
 window.addEventListener('DOMContentLoaded', function() {
-  const tabContent = document.querySelector('[fs-list-element="tabs"]');
-  if (!tabContent) return;
+  // Give Finsweet time to inject content first
+  setTimeout(function() {
+    const tabContent = document.querySelector('[fs-list-element="tabs"]');
+    if (!tabContent) return;
 
-  // Use a MutationObserver to watch for class changes (tab switches)
-  const observer = new MutationObserver(() => {
-    pauseInactiveLoomVideos();
-  });
+    // Use a MutationObserver to watch for class changes (tab switches only)
+    const observer = new MutationObserver(function(mutations) {
+      // Only respond to class changes on tab panes (actual tab switches)
+      const hasTabSwitch = mutations.some(function(mutation) {
+        return mutation.type === 'attributes' && 
+               mutation.attributeName === 'class' &&
+               mutation.target.classList.contains('w-tab-pane');
+      });
+      
+      if (hasTabSwitch) {
+        setTimeout(pauseInactiveLoomVideos, 100); // Small delay for tab transition
+      }
+    });
 
-  observer.observe(tabContent, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    // Watch for class changes only on tab panes
+    document.querySelectorAll('.w-tab-pane').forEach(function(pane) {
+      observer.observe(pane, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+      });
+    });
 
-  // Also run once on load
-  pauseInactiveLoomVideos();
+    // Also run once after initial setup
+    setTimeout(pauseInactiveLoomVideos, 200);
+    
+  }, 1000); // Wait for Finsweet injection to complete
 }); 
