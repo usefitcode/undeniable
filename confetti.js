@@ -65,9 +65,11 @@ document.addEventListener("DOMContentLoaded", function() {
     confettiElems.forEach(function(item) {
         // Skip mark-complete buttons - they handle their own confetti timing
         if (item.classList.contains('mark-complete-btn')) {
+            console.log('Skipping confetti click handler for mark-complete button');
             return;
         }
         
+        console.log('Adding confetti click handler for element:', item);
         item.addEventListener("click", function() {
             const effect = item.getAttribute("ms-code-confetti");
             window.triggerConfetti(effect);
