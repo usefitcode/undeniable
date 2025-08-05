@@ -143,6 +143,7 @@ document.addEventListener("DOMContentLoaded", function() {
             
             const completedData = memberJson.completedContent;
             const isCompleted = completedData[phaseId] && completedData[phaseId].includes(videoId);
+            const wasMarkingComplete = !isCompleted; // Store the action type
             
             if (isCompleted) {
               completedData[phaseId] = completedData[phaseId].filter(function(id) { return id !== videoId; });
@@ -160,8 +161,8 @@ document.addEventListener("DOMContentLoaded", function() {
                   btn.classList.remove('is-loading');
                   btn.classList.toggle('is-completed', !isCompleted);
                   
-                  // Trigger confetti on completion (not un-completion)
-                  if (!isCompleted && window.triggerConfetti) {
+                  // Trigger confetti only when marking complete (not un-marking)
+                  if (wasMarkingComplete && window.triggerConfetti) {
                     const confettiEffect = btn.getAttribute('ms-code-confetti') || 'explosions';
                     window.triggerConfetti(confettiEffect);
                   }
