@@ -106,74 +106,6 @@ document.addEventListener("DOMContentLoaded", function() {
       return;
     }
 
-    // Video completion detection setup
-    function setupVideoCompletionDetection(buttons, memberJson) {
-      console.log('Setting up video completion detection...');
-      
-      // Map buttons to their corresponding videos
-      var videoPairs = [];
-      buttons.forEach(function(btn) {
-        var tabPane = btn.closest('.w-tab-pane');
-        if (tabPane) {
-          var iframe = tabPane.querySelector('iframe[data-video-tab-iframe]');
-          if (iframe) {
-            videoPairs.push({
-              button: btn,
-              iframe: iframe,
-              videoId: btn.dataset.videoId,
-              phaseId: btn.dataset.phaseId,
-              completed: false
-            });
-          }
-        }
-      });
-      
-      console.log('Found video-button pairs:', videoPairs.length);
-      
-      // Listen for video progress messages
-      window.addEventListener('message', function(event) {
-        if (event.origin !== 'https://www.loom.com') return;
-        
-        var data = event.data;
-        if (data.method === 'timeupdate' && data.currentTime && data.duration) {
-          var progress = (data.currentTime / data.duration) * 100;
-          
-          // Find the corresponding button for this video
-          videoPairs.forEach(function(pair) {
-            // Match by iframe source or other identifier
-            if (event.source === pair.iframe.contentWindow && progress >= 90 && !pair.completed) {
-              console.log('Video reached 90% completion, auto-marking complete:', pair.videoId);
-              pair.completed = true;
-              
-              // Check if already completed to avoid duplicate marking
-              var isAlreadyCompleted = memberJson.completedContent[pair.phaseId] && 
-                                     memberJson.completedContent[pair.phaseId].includes(pair.videoId);
-              
-              if (!isAlreadyCompleted) {
-                // Simulate button click for auto-completion
-                setTimeout(function() {
-                  pair.button.click();
-                }, 500); // Small delay to ensure video completion is registered
-              }
-            }
-          });
-        }
-      });
-      
-      // Request time updates from all Loom videos
-      videoPairs.forEach(function(pair) {
-        try {
-          pair.iframe.contentWindow.postMessage({
-            method: 'addEventListener',
-            event: 'timeupdate',
-            context: 'player.js'
-          }, 'https://www.loom.com');
-        } catch (e) {
-          console.warn('Could not setup video listener for:', pair.videoId, e);
-        }
-      });
-    }
-
     window.$memberstackDom.getCurrentMember()
       .then(function(result) {
         const member = result.data;
@@ -216,9 +148,6 @@ document.addEventListener("DOMContentLoaded", function() {
         
         updateProgress(memberJson.completedContent);
         updateIcons(memberJson.completedContent);
-
-        // Set up automatic video completion detection
-        setupVideoCompletionDetection(buttons, memberJson);
 
         // Add click handlers with debouncing
         buttons.forEach(function(btn) {
