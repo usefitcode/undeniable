@@ -60,8 +60,14 @@ document.addEventListener("DOMContentLoaded", function() {
     };
     
     // Set up click handlers for elements with ms-code-confetti attribute
+    // BUT skip elements that also have mark-complete-btn class (handled by completion-tracking.js)
     const confettiElems = document.querySelectorAll("[ms-code-confetti]");
     confettiElems.forEach(function(item) {
+        // Skip mark-complete buttons - they handle their own confetti timing
+        if (item.classList.contains('mark-complete-btn')) {
+            return;
+        }
+        
         item.addEventListener("click", function() {
             const effect = item.getAttribute("ms-code-confetti");
             window.triggerConfetti(effect);
