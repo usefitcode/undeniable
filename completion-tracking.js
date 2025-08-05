@@ -46,6 +46,11 @@ document.addEventListener("DOMContentLoaded", function() {
   waitForMemberstack(function() {
     detectExtensionConflicts();
     
+    // Check for confetti library
+    if (!window.confetti) {
+      console.warn('Confetti library not loaded - celebrations will be disabled');
+    }
+    
     const buttons = document.querySelectorAll('.mark-complete-btn');
     const progressText = document.querySelector('[data-progress-element="text"]');
     const progressBar = document.querySelector('[data-progress-element="bar"]');
@@ -154,6 +159,12 @@ document.addEventListener("DOMContentLoaded", function() {
                   btn.textContent = isCompleted ? 'Mark Complete' : '☑️ Completed';
                   btn.classList.remove('is-loading');
                   btn.classList.toggle('is-completed', !isCompleted);
+                  
+                  // Trigger confetti on completion (not un-completion)
+                  if (!isCompleted && window.triggerConfetti) {
+                    const confettiEffect = btn.getAttribute('ms-code-confetti') || 'explosions';
+                    window.triggerConfetti(confettiEffect);
+                  }
                   
                   updateProgress(completedData);
                   updateIcons(completedData);

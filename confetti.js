@@ -1,13 +1,18 @@
 // Confetti Party
 document.addEventListener("DOMContentLoaded", function() {
-    const confettiElems = document.querySelectorAll("[ms-code-confetti]");
-
-    confettiElems.forEach(item => {
-        item.addEventListener("click", () => {
-            const effect = item.getAttribute("ms-code-confetti");
-            switch (effect) {
+    // Check for confetti library
+    if (!window.confetti) {
+        console.error('Canvas-confetti library not loaded! Include: https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js');
+        return;
+    }
+    
+    // Global function to trigger confetti programmatically
+    window.triggerConfetti = function(effect) {
+        if (!window.confetti) return;
+        
+        switch (effect) {
                 case "falling":
-                    const makeFall = () => {
+                    var makeFall = function() {
                         confetti({
                             particleCount: 100,
                             startVelocity: 30,
@@ -15,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             origin: { x: Math.random(), y: 0 },
                             colors: ['#ffffff','#ff0000','#00ff00','#0000ff']
                         });
-                    }
+                    };
                     setInterval(makeFall, 2000);
                     break;
                 case "single":
@@ -51,7 +56,15 @@ document.addEventListener("DOMContentLoaded", function() {
                     break;
                 default:
                     console.log("Unknown confetti effect");
-            }
+        }
+    };
+    
+    // Set up click handlers for elements with ms-code-confetti attribute
+    const confettiElems = document.querySelectorAll("[ms-code-confetti]");
+    confettiElems.forEach(function(item) {
+        item.addEventListener("click", function() {
+            const effect = item.getAttribute("ms-code-confetti");
+            window.triggerConfetti(effect);
         });
     });
 }); 
